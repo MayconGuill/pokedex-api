@@ -5,8 +5,11 @@ import com.pokedex.api.model.DTO.PokemonSummaryDTO;
 import com.pokedex.api.model.DTO.PokemonDetailsDTO;
 import com.pokedex.api.service.PokemonService;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/pokemon")
@@ -23,6 +26,12 @@ public class PokemonController {
     @PostMapping("/{name}")
     public ResponseEntity<PokemonDetailsDTO> importPokemonByName(@PathVariable String name) {
         return ResponseEntity.ok(pokemonService.postPokemonByName(name.toLowerCase()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<PokemonSummaryDTO>> getPageableToPokemon(@RequestParam int page,
+                                                                        @RequestParam int size) {
+        return ResponseEntity.ok(pokemonService.getPageableToPokemon(page, size));
     }
 
     @GetMapping("/{name}")

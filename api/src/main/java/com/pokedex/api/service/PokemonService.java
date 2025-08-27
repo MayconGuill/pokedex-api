@@ -13,6 +13,9 @@ import com.pokedex.api.repository.PokemonStatRepository;
 import com.pokedex.api.repository.StatRepository;
 import com.pokedex.api.repository.TypeRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -26,7 +29,6 @@ public class PokemonService {
     private final PokemonRepository repository;
     private final StatRepository statRepository;
     private final TypeRepository typeRepository;
-    private final PokemonStatRepository pokemonStatRepository;
 
     public PokeApiResponseDTO getPokemonByNameForApi(String name) {
         return webClient.get()
@@ -36,14 +38,31 @@ public class PokemonService {
                 .block();
     }
 
+    public Page<PokemonSummaryDTO> getPageableToPokemon(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Pokemon> pagePokemon = repository.findAll(pageable);
+
+        return pagePokemon.map(pokemons -> {
+                    List<PokemonDetailsDTO.TypeDTO.Type> types = pokemons.getTypes().stream()
+                            .map(pokemonType -> new PokemonDetailsDTO.TypeDTO.Type(
+                                    pokemonType.getType().getName()
+                            )).toList();
+                    return new PokemonSummaryDTO(
+                            pokemons.getPokemonId(),
+                            pokemons.getName(),
+                            types
+                    );
+                });
+    }
+
     public PokemonSummaryDTO getPokemonByName(String name) {
         Pokemon pokemon = repository.findByName(name)
                 .orElseThrow(() -> new IllegalArgumentException("Pokemon nao localizado"));
 
         List<PokemonDetailsDTO.TypeDTO.Type> types = pokemon.getTypes().stream()
                 .map(pokemonType -> new PokemonDetailsDTO.TypeDTO.Type(
-                        pokemonType.getType().getName()))
-                .toList();
+                        pokemonType.getType().getName()
+                )).toList();
 
         return new PokemonSummaryDTO(
                 pokemon.getPokemonId(),
