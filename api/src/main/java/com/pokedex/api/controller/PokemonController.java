@@ -1,8 +1,8 @@
 package com.pokedex.api.controller;
 
 import com.pokedex.api.model.DTO.PokeApiResponseDTO;
-import com.pokedex.api.model.DTO.PokemonResponseDTO;
-import com.pokedex.api.model.pokemon.Pokemon;
+import com.pokedex.api.model.DTO.PokemonSummaryDTO;
+import com.pokedex.api.model.DTO.PokemonDetailsDTO;
 import com.pokedex.api.service.PokemonService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,15 +15,18 @@ public class PokemonController {
 
     private final PokemonService pokemonService;
 
+    @GetMapping("/external/{name}")
+    public PokeApiResponseDTO getByNameForApi(@PathVariable String name) {
+        return this.pokemonService.getPokemonByNameForApi(name.toLowerCase());
+    }
+
+    @PostMapping("/{name}")
+    public ResponseEntity<PokemonDetailsDTO> importPokemonByName(@PathVariable String name) {
+        return ResponseEntity.ok(pokemonService.postPokemonByName(name.toLowerCase()));
+    }
+
     @GetMapping("/{name}")
-    public PokeApiResponseDTO getByName(@PathVariable String name) {
-        return this.pokemonService.getPokemonByName(name.toLowerCase());
+    public ResponseEntity<PokemonSummaryDTO> getPokemonByName(@PathVariable String name) {
+        return ResponseEntity.ok(pokemonService.getPokemonByName(name.toLowerCase()));
     }
-
-    @GetMapping("/import/{name}")
-    public ResponseEntity<PokemonResponseDTO> importPokemonByName(@PathVariable String name) {
-        return ResponseEntity.ok(pokemonService.getPokemonByNameOnDemand(name.toLowerCase()));
-    }
-
-
 }

@@ -1,7 +1,8 @@
 package com.pokedex.api.service;
 
 import com.pokedex.api.model.DTO.PokeApiResponseDTO;
-import com.pokedex.api.model.DTO.PokemonResponseDTO;
+import com.pokedex.api.model.DTO.PokemonSummaryDTO;
+import com.pokedex.api.model.DTO.PokemonDetailsDTO;
 import com.pokedex.api.model.pokemon.Pokemon;
 import com.pokedex.api.model.stat.PokemonStat;
 import com.pokedex.api.model.stat.Stat;
@@ -15,9 +16,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -27,8 +26,9 @@ public class PokemonService {
     private final PokemonRepository repository;
     private final StatRepository statRepository;
     private final TypeRepository typeRepository;
+    private final PokemonStatRepository pokemonStatRepository;
 
-    public PokeApiResponseDTO getPokemonByName(String name) {
+    public PokeApiResponseDTO getPokemonByNameForApi(String name) {
         return webClient.get()
                 .uri("/pokemon/{name}", name)
                 .retrieve()
@@ -36,38 +36,23 @@ public class PokemonService {
                 .block();
     }
 
-    private PokemonResponseDTO toResponseDTO(Pokemon pokemon) {
-        List<PokemonResponseDTO.StatDTO> stats = pokemon.getStats().stream()
-                .map(pokemonStat -> new PokemonResponseDTO.StatDTO(
-                        pokemonStat.getBaseStat(),
-                        new PokemonResponseDTO.StatDTO.Stat(pokemonStat.getStat().getName()
-                ))).toList();
+    public PokemonSummaryDTO getPokemonByName(String name) {
+        Pokemon pokemon = repository.findByName(name)
+                .orElseThrow(() -> new IllegalArgumentException("Pokemon nao localizado"));
 
-        List<PokemonResponseDTO.TypeDTO> types = pokemon.getTypes().stream()
-                .map(pokemonType -> new PokemonResponseDTO.TypeDTO(
-                        pokemonType.getSlot(),
-                        new PokemonResponseDTO.TypeDTO.Type(pokemonType.getType().getName())
-                ))
+        List<PokemonDetailsDTO.TypeDTO.Type> types = pokemon.getTypes().stream()
+                .map(pokemonType -> new PokemonDetailsDTO.TypeDTO.Type(
+                        pokemonType.getType().getName()))
                 .toList();
 
-        return new PokemonResponseDTO(
+        return new PokemonSummaryDTO(
                 pokemon.getPokemonId(),
                 pokemon.getName(),
-                pokemon.getHeight(),
-                pokemon.getWeight(),
-                stats,
                 types
         );
     }
 
-
-    public PokemonResponseDTO getPokemonByNameOnDemand(String name) {
-        Optional<Pokemon> pokemon = repository.findByName(name);
-
-        if (pokemon.isPresent()) {
-            return toResponseDTO(pokemon.get());
-        }
-
+    public PokemonDetailsDTO postPokemonByName(String name) {
         PokeApiResponseDTO data = webClient.get()
                 .uri("/pokemon/{name}", name)
                 .retrieve()
@@ -75,50 +60,72 @@ public class PokemonService {
                 .block();
 
         if (data == null) {
-            throw new RuntimeException("Pokemon não encontrado na API");
+            throw new RuntimeException("Pokemon nao encontrado na API");
         }
 
-        Pokemon poke = new Pokemon();
-        poke.setPokemonId(data.id());
-        poke.setName(data.name());
-        poke.setHeight(data.height());
-        poke.setWeight(data.weight());
-        poke.setStats(new ArrayList<>());
-        poke.setTypes(new ArrayList<>());
+        Pokemon pokemon = new Pokemon();
+        pokemon.setPokemonId(data.id());
+        pokemon.setName(data.name());
+        pokemon.setHeight(data.height());
+        pokemon.setWeight(data.weight());
 
-        data.stats().forEach(stats -> {
-            Stat stat = statRepository.findByName(stats.stat().name())
-                    .orElseGet(() -> {
-                        Stat newStat = new Stat();
-                        newStat.setName(stats.stat().name());
-                        return statRepository.save(newStat);
-                    });
+        List<PokemonStat> stats = data.stats().stream()
+                .map(statsDto -> {
+                    Stat stat = statRepository.findByName(statsDto.stat().name())
+                            .orElseGet(() -> {
+                                Stat newStat = new Stat();
+                                newStat.setName(statsDto.stat().name());
+                                return statRepository.save(newStat);
+                            });
 
-            PokemonStat pokemonStat = new PokemonStat();
-            pokemonStat.setBaseStat(stats.base_stat());
-            pokemonStat.setPokemon(poke);
-            pokemonStat.setStat(stat);
+                    PokemonStat pokemonStat = new PokemonStat();
+                    pokemonStat.setBaseStat(statsDto.base_stat());
+                    pokemonStat.setPokemon(pokemon);
+                    pokemonStat.setStat(stat);
 
-            poke.getStats().add(pokemonStat);
-        });
+                    return pokemonStat;
+                })
+                .toList();
 
-        data.types().forEach(typeSlot -> {
-            Type type = typeRepository.findByName(typeSlot.type().name())
-                    .orElseGet(() -> {
-                        Type newType = new Type();
-                        newType.setName(typeSlot.type().name());
-                        return typeRepository.save(newType);
-                    });
+       pokemon.setStats(stats);
 
-            PokemonType pokemonType = new PokemonType();
-            pokemonType.setSlot(typeSlot.slot());
-            pokemonType.setPokemon(poke);
-            pokemonType.setType(type);
+        List<PokemonType> types = data.types().stream()
+                .map(typesDto -> {
+                    Type type = typeRepository.findByName(typesDto.type().name())
+                            .orElseGet(() -> {
+                                Type newType = new Type();
+                                newType.setName(typesDto.type().name());
+                                return typeRepository.save(newType);
+                            });
 
-            poke.getTypes().add(pokemonType);
-        });
-        Pokemon saved = repository.save(poke);
+                    PokemonType pokemonType = new PokemonType();
+                    pokemonType.setSlot(typesDto.slot());
+                    pokemonType.setPokemon(pokemon);
+                    pokemonType.setType(type);
 
-        return toResponseDTO(saved);
+                    return pokemonType;
+                })
+                .toList();
+
+       pokemon.setTypes(types);
+
+       Pokemon pokemonSaved = repository.save(pokemon);
+
+       return new PokemonDetailsDTO(
+               pokemonSaved.getPokemonId(),
+               pokemonSaved.getName(),
+               pokemonSaved.getHeight(),
+               pokemonSaved.getWeight(),
+               pokemonSaved.getStats().stream()
+                       .map(pokemonStat -> new PokemonDetailsDTO.StatDTO(
+                               pokemonStat.getBaseStat(),
+                               new PokemonDetailsDTO.StatDTO.Stat(pokemonStat.getStat().getName())
+                       )).toList(),
+               pokemonSaved.getTypes().stream()
+                       .map(pokemonType -> new PokemonDetailsDTO.TypeDTO(
+                               pokemonType.getSlot(),
+                               new PokemonDetailsDTO.TypeDTO.Type(pokemonType.getType().getName())
+                       )).toList()
+       );
     }
 }

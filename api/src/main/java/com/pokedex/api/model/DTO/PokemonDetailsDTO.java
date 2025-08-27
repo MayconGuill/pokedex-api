@@ -2,7 +2,7 @@ package com.pokedex.api.model.DTO;
 
 import java.util.List;
 
-public record PokemonResponseDTO(
+public record PokemonDetailsDTO(
         Integer id,
         String name,
         Integer height,
