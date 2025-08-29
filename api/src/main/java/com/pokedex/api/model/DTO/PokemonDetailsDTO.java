@@ -7,6 +7,7 @@ public record PokemonDetailsDTO(
         String name,
         Integer height,
         Integer weight,
+        String image,
         List<StatDTO> stats,
         List<TypeDTO> types
 ) {

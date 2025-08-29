@@ -27,6 +27,7 @@ public class Pokemon {
     private String name;
     private Integer height;
     private Integer weight;
+    private String image;
 
     @OneToMany(mappedBy = "pokemon", cascade = CascadeType.ALL)
     private List<PokemonStat> stats = new ArrayList<>();

@@ -9,13 +9,13 @@ import com.pokedex.api.model.stat.Stat;
 import com.pokedex.api.model.type.PokemonType;
 import com.pokedex.api.model.type.Type;
 import com.pokedex.api.repository.PokemonRepository;
-import com.pokedex.api.repository.PokemonStatRepository;
 import com.pokedex.api.repository.StatRepository;
 import com.pokedex.api.repository.TypeRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -50,6 +50,7 @@ public class PokemonService {
                     return new PokemonSummaryDTO(
                             pokemons.getPokemonId(),
                             pokemons.getName(),
+                            pokemons.getImage(),
                             types
                     );
                 });
@@ -67,8 +68,45 @@ public class PokemonService {
         return new PokemonSummaryDTO(
                 pokemon.getPokemonId(),
                 pokemon.getName(),
+                pokemon.getImage(),
                 types
         );
+    }
+
+    public Page<PokemonSummaryDTO> getPokemonOrdainedByGreatest(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("pokemonId").descending());
+        Page<Pokemon> pagePokemon = repository.findAll(pageable);
+
+        return pagePokemon.map(pokemon -> {
+            List<PokemonDetailsDTO.TypeDTO.Type> types = pokemon.getTypes().stream()
+                    .map(pokemonType -> new PokemonDetailsDTO.TypeDTO.Type(
+                            pokemonType.getType().getName()
+                    )).toList();
+            return new PokemonSummaryDTO(
+                    pokemon.getPokemonId(),
+                    pokemon.getName(),
+                    pokemon.getImage(),
+                    types
+            );
+        });
+    }
+
+    public Page<PokemonSummaryDTO> getPokemonOrdainedBySmallest(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("pokemonId").ascending());
+        Page<Pokemon> pagePokemon = repository.findAll(pageable);
+
+        return pagePokemon.map(pokemon -> {
+            List<PokemonDetailsDTO.TypeDTO.Type> types = pokemon.getTypes().stream()
+                    .map(pokemonType -> new PokemonDetailsDTO.TypeDTO.Type(
+                            pokemonType.getType().getName()
+                    )).toList();
+            return new PokemonSummaryDTO(
+                    pokemon.getPokemonId(),
+                    pokemon.getName(),
+                    pokemon.getImage(),
+                    types
+            );
+        });
     }
 
     public PokemonDetailsDTO postPokemonByName(String name) {
@@ -87,6 +125,7 @@ public class PokemonService {
         pokemon.setName(data.name());
         pokemon.setHeight(data.height());
         pokemon.setWeight(data.weight());
+        pokemon.setImage(data.sprites().other().dream_world().front_default());
 
         List<PokemonStat> stats = data.stats().stream()
                 .map(statsDto -> {
@@ -135,6 +174,7 @@ public class PokemonService {
                pokemonSaved.getName(),
                pokemonSaved.getHeight(),
                pokemonSaved.getWeight(),
+               pokemonSaved.getImage(),
                pokemonSaved.getStats().stream()
                        .map(pokemonStat -> new PokemonDetailsDTO.StatDTO(
                                pokemonStat.getBaseStat(),
