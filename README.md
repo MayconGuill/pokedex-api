@@ -33,14 +33,22 @@ A Pokedex API consome dados da [PokeAPI](https://pokeapi.co/), armazena localmen
 ## Estrutura do Projeto
 
 src/main/java/com/pokedex/api
+
 ├── config          # WebClient configurando a rota da API externa
+
 ├── controller      # Endpoints da API
+
 ├── dto             # Objetos de transferência de dados
+
 ├── exception       # Tratamentos de erro personalizado
+
 ├── infra           # Handlers dos erros
+
 ├── model
 │   ├── domain      # Entidades do banco
+
 ├── repository      # Interfaces de persistência
+
 └── service         # Lógica de negócios
 
 
