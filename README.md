@@ -30,6 +30,15 @@ A Pokedex API consome dados da [PokeAPI](https://pokeapi.co/), armazena localmen
 
 ---
 
+## Branches
+
+Atualmente o projeto conta com as seguintes branches:
+
+- `main`: branch principal, estável.
+- `feature/consume-pokeapi`: branch de desenvolvimento atual, onde estão sendo implementadas as integrações com a PokeAPI antes do merge para a `main`.
+
+---
+
 ## Estrutura do Projeto
 
 📂 src/main/java/com/pokedex/api  
