@@ -1,4 +1,4 @@
-package com.pokedex.api.model.DTO;
+package com.pokedex.api.dto;
 
 import java.util.List;
 

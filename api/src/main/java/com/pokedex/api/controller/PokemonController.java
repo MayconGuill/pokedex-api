@@ -1,8 +1,8 @@
 package com.pokedex.api.controller;
 
-import com.pokedex.api.model.DTO.PokeApiResponseDTO;
-import com.pokedex.api.model.DTO.PokemonSummaryDTO;
-import com.pokedex.api.model.DTO.PokemonDetailsDTO;
+import com.pokedex.api.dto.PokeApiResponseDTO;
+import com.pokedex.api.dto.PokemonSummaryDTO;
+import com.pokedex.api.dto.PokemonDetailsDTO;
 import com.pokedex.api.service.PokemonService;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;

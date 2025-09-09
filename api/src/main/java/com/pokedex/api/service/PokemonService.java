@@ -1,8 +1,9 @@
 package com.pokedex.api.service;
 
-import com.pokedex.api.model.DTO.PokeApiResponseDTO;
-import com.pokedex.api.model.DTO.PokemonSummaryDTO;
-import com.pokedex.api.model.DTO.PokemonDetailsDTO;
+import com.pokedex.api.dto.PokeApiResponseDTO;
+import com.pokedex.api.dto.PokemonSummaryDTO;
+import com.pokedex.api.dto.PokemonDetailsDTO;
+import com.pokedex.api.exception.PokemonNotFoundException;
 import com.pokedex.api.model.pokemon.Pokemon;
 import com.pokedex.api.model.stat.PokemonStat;
 import com.pokedex.api.model.stat.Stat;
@@ -16,8 +17,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -29,14 +32,6 @@ public class PokemonService {
     private final PokemonRepository repository;
     private final StatRepository statRepository;
     private final TypeRepository typeRepository;
-
-    public PokeApiResponseDTO getPokemonByNameForApi(String name) {
-        return webClient.get()
-                .uri("/pokemon/{name}", name)
-                .retrieve()
-                .bodyToMono(PokeApiResponseDTO.class)
-                .block();
-    }
 
     public Page<PokemonSummaryDTO> getPageableToPokemon(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -58,7 +53,7 @@ public class PokemonService {
 
     public PokemonSummaryDTO getPokemonByName(String name) {
         Pokemon pokemon = repository.findByName(name)
-                .orElseThrow(() -> new IllegalArgumentException("Pokemon nao localizado"));
+                .orElseThrow(() -> new PokemonNotFoundException("Pokémon não encontrado no Banco de Dados"));
 
         List<PokemonDetailsDTO.TypeDTO.Type> types = pokemon.getTypes().stream()
                 .map(pokemonType -> new PokemonDetailsDTO.TypeDTO.Type(
@@ -109,16 +104,17 @@ public class PokemonService {
         });
     }
 
-    public PokemonDetailsDTO postPokemonByName(String name) {
-        PokeApiResponseDTO data = webClient.get()
+    public PokeApiResponseDTO getPokemonByNameForApi(String name) {
+        return webClient.get()
                 .uri("/pokemon/{name}", name)
                 .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.error(new PokemonNotFoundException()))
                 .bodyToMono(PokeApiResponseDTO.class)
                 .block();
+    }
 
-        if (data == null) {
-            throw new RuntimeException("Pokemon nao encontrado na API");
-        }
+    public PokemonDetailsDTO postPokemonByName(String name) {
+        PokeApiResponseDTO data = getPokemonByNameForApi(name);
 
         Pokemon pokemon = new Pokemon();
         pokemon.setPokemonId(data.id());
