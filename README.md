@@ -45,6 +45,7 @@ src/main/java/com/pokedex/api
 ├── infra           # Handlers dos erros
 
 ├── model
+
 │   ├── domain      # Entidades do banco
 
 ├── repository      # Interfaces de persistência
